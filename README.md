@@ -94,12 +94,12 @@ Dentex/
 ├── README.md
 ├── YOLO.ipynb                                       
 ├── KNN.ipynb                                        
-├── random_forest(1).ipynb                           
+├── RandomForest.ipynb                           
 ├── SVM.ipynb                                        
-├── Decision_Tree.ipynb                              
+├── DecisionTrees.ipynb                              
 ├── VotingClassifier.ipynb                           
-├── dentex_logistic_hog_json_70_30_(1).ipynb         
-├── dentex_ridge_hog_json_70_30_(1) (1).ipynb        
+├── LogisticRegression.ipynb         
+├── RidgeClassifier.ipynb        
 ├── .gitignore                                       
 └── dental_ai/                                       
     ├── run.py   config.py   requirements.txt   train_classical.py
