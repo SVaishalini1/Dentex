@@ -263,8 +263,10 @@ Test sizes for Logistic / Ridge: 832 quadrant regions (208 X-rays), 5,434 teeth,
 | Ridge | Quadrant | 1.000 | 1.000 | 1.000 | 1.000 |
 | Ridge | Tooth numbering | 0.588 | 0.591 | 0.588 | 0.588 |
 | Ridge | Abnormality | 0.635 | 0.541 | 0.626 | 0.562 |
-| KNN, RF, SVM, Decision Tree | all three | *(fill in from `knn_results.csv`, `rf_results.csv`, ...)* | | | |
- 
+| KNN, RF, SVM, Logistic Regression | Quadrant | 0.995 | 0.995 | 0.995 | 0.995 |
+| KNN, RF, SVM, Logistic Regression | Tooth Numbering | 0.604 | 0.609 | 0.611 | 0.608|
+| KNN, RF, SVM, Logistic Regression | Abnormality | 0.767 | 0.697 | 0.504 | 0.493 |
+
 ### 7.3 What the results show
 - **Quadrant is almost solved** (above 99% for the linear models). The label is closely tied to where the region sits on the image, so it is largely a position problem. Perfect scores on a 832-region test set should be read with that in mind.
 - **Tooth numbering is the hard part** (about 0.58 to 0.59 accuracy for the linear models). The confusion matrices show errors **between neighbouring numbers** (1 vs 2, 4 vs 5, 6 vs 7 vs 8), because adjacent teeth look alike.
