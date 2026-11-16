@@ -1,11 +1,10 @@
-
 # Dental OPG Analyzer: Tooth Detection, FDI Numbering and Abnormality Detection on Panoramic X-rays
  
 An end-to-end project on the **DENTEX** dataset. Given a panoramic dental X-ray (OPG), the system
 1. divides the jaw into its **4 quadrants**,
 2. finds every tooth and gives it its **FDI number**,
 3. finds the **abnormalities** (Caries, Deep Caries, Periapical Lesion, Impacted tooth),
-and compares what **six traditional machine-learning models** (Logistic Regression, Ridge, Random Forest, SVM, KNN, Decision Tree) predict for the same abnormalities. Everything is served through a web app.
+and compares what **six traditional machine-learning models** (Logistic Regression, Ridge, Random Forest, SVM, KNN, Decision Tree) predict for the same abnormalities. A **Voting Classifier** that combines four of these models into one soft-voting ensemble is also trained and evaluated (Part B). Everything is served through a web app.
  
 > **Disclaimer.** This is an academic / research project. It is **not** a medical device and must not be used for diagnosis or treatment decisions.
  
@@ -22,7 +21,6 @@ and compares what **six traditional machine-learning models** (Logistic Regressi
 8. [Part C: Web application](#8-part-c-web-application)
 9. [Limitations and future work](#9-limitations-and-future-work)
 10. [Reproducibility](#10-reproducibility)
-11. [Acknowledgements and license](#11-acknowledgements-and-license)
 ---
  
 ## 1. Project overview
@@ -32,7 +30,7 @@ The project has three parts that share one dataset:
 | Part | What it does | Where |
 |---|---|---|
 | **A. YOLO** | Locates quadrants, teeth (with tooth number) and abnormalities on the full X-ray | `YOLO.ipynb` |
-| **B. Traditional ML** | Classifies a cropped tooth / region with HOG features and six classical models | the six model notebooks in the repo root |
+| **B. Traditional ML** | Classifies a cropped tooth / region with HOG features and six classical models, plus a soft-voting ensemble (Voting Classifier) of four of them | the six model notebooks and `VotingClassifier.ipynb` in the repo root |
 | **C. Web app** | Upload an OPG, see the three annotated images, and compare the traditional models | `dental_ai/` |
  
 ### Objectives
@@ -40,8 +38,8 @@ The project has three parts that share one dataset:
 | # | Objective | Done by |
 |---|---|---|
 | 01 | **Tooth localization**: locate individual teeth / quadrants in an OPG | YOLO (Part A) |
-| 02 | **Quadrant prediction and tooth enumeration**: classify a tooth into one of four quadrants and give its number | YOLO (Part A) and traditional models (Part B) |
-| 04 | **Pathology detection**: identify caries, deep caries, periapical lesions and impacted teeth | YOLO (Part A) and traditional models (Part B) |
+| 02 | **Quadrant prediction and tooth enumeration**: classify a tooth into one of four quadrants and give its number | YOLO (Part A) and traditional models incl. Voting Classifier (Part B) |
+| 04 | **Pathology detection**: identify caries, deep caries, periapical lesions and impacted teeth | YOLO (Part A) and traditional models incl. Voting Classifier (Part B) |
  
 ### Pipeline
  
@@ -66,7 +64,7 @@ flowchart LR
  
 ## 2. Dataset
  
-**DENTEX** (Dental Enumeration and Diagnosis on Panoramic X-rays), from the MICCAI 2023 challenge. The training data is downloaded from the Hugging Face dataset `keycxl/DENTEX` (`DENTEX/training_data.zip`). Please check the dataset's own license and citation requirements before redistributing anything derived from it.
+**DENTEX** (Dental Enumeration and Diagnosis on Panoramic X-rays), from the MICCAI 2023 challenge. The training data is downloaded from the Hugging Face dataset `keycxl/DENTEX` (`DENTEX/training_data.zip`). 
  
 | Subset | Images | Annotations | Labels |
 |---|---|---|---|
@@ -87,7 +85,6 @@ Things worth knowing about the data:
 | Periapical Lesion | 158 | 4% |
  
 - The official DENTEX challenge test set has no public labels and is **not used**. All evaluation here uses held-out parts of the labelled training data, always split **by X-ray**.
-- About 66 abnormal teeth (about 2%) carry two abnormality labels. They are kept as separate rows.
 ---
  
 ## 3. Repository structure
@@ -95,31 +92,32 @@ Things worth knowing about the data:
 ```
 Dentex/
 ├── README.md
-├── YOLO.ipynb                                       # Part A: quadrant, tooth-number and disease YOLO models
-├── KNN.ipynb                                        # Part B: K-Nearest Neighbours
-├── random_forest(1).ipynb                           # Part B: Random Forest
-├── SVM.ipynb                                        # Part B: Support Vector Machine
-├── Decision_Tree.ipynb                              # Part B: Decision Tree
-├── dentex_logistic_hog_json_70_30_(1).ipynb         # Part B: Logistic Regression
-├── dentex_ridge_hog_json_70_30_(1) (1).ipynb        # Part B: Ridge
-├── .gitignore                                       # keeps weights and results out of git
-└── dental_ai/                                       # Part C: the web application (FastAPI)
+├── YOLO.ipynb                                       
+├── KNN.ipynb                                        
+├── random_forest(1).ipynb                           
+├── SVM.ipynb                                        
+├── Decision_Tree.ipynb                              
+├── VotingClassifier.ipynb                           
+├── dentex_logistic_hog_json_70_30_(1).ipynb         
+├── dentex_ridge_hog_json_70_30_(1) (1).ipynb        
+├── .gitignore                                       
+└── dental_ai/                                       
     ├── run.py   config.py   requirements.txt   train_classical.py
     ├── models/
-    │   ├── quadrant.pt  enum.pt  disease.pt         # YOLO weights (not stored in git)
-    │   ├── imgsz.txt                                # optional: training image size
-    │   └── classical/classical_models.joblib        # the 6 traditional models (not stored in git)
+    │   ├── quadrant.pt  enum.pt  disease.pt         
+    │   ├── imgsz.txt                                
+    │   └── classical/classical_models.joblib        
     ├── app/
-    │   ├── main.py                                  # API and page routes
+    │   ├── main.py                                  
     │   └── services/
     │       ├── yolo_engine.py    mock_engine.py     postprocess.py
     │       ├── annotate.py       classical.py
     ├── static/   index.html  compare.html  style.css
-    ├── storage/results/                             # one folder per analysis
+    ├── storage/results/                             
     └── tests/test_api.py
 ```
  
-Model weights and `.joblib` files are large binaries. They are excluded by `.gitignore`; share them through a GitHub Release, Git LFS or a drive link (see [8.2](#82-setup)).
+Model weights and `.joblib` files are large binaries. They are excluded by `.gitignore`.Can refer to them from the YOLO.ipynb file.
  
 ---
  
@@ -146,14 +144,13 @@ Model weights and `.joblib` files are large binaries. They are excluded by `.git
  
 **Class imbalance.** Caries is 62% of the abnormal teeth. Models are therefore evaluated with macro-averaged metrics, and `class_weight="balanced"` is used where the algorithm supports it (KNN has no such option).
  
-**Group-aware splitting.** One X-ray contains many teeth. If crops from the same X-ray fall in both training and test sets, the model recognises the patient's anatomy and the score is inflated (data leakage). All splits therefore keep every crop of one X-ray on the same side:
-- `GroupShuffleSplit(test_size=0.3, random_state=42)` for the train/test split.
-- `StratifiedGroupKFold` for cross-validation (keeps X-rays together and class proportions similar).
-**Hyperparameter tuning.** `GridSearchCV` with `scoring="f1_macro"` is run on the training part only; the test part is used once at the end.
+**Hyperparameter tuning.** `GridSearchCV` with `scoring="f1_macro"` is run on the training part only; the test part is used once at the end. The Voting Classifier is the exception: it is not searched again and simply reuses the best settings of its member models.
+ 
+**Voting classifier (ensemble).** A meta-model that trains several different models on the same data and combines their outputs into one prediction. With **hard voting** each model casts one vote for a class and the majority wins. With **soft voting** (used here) each model's predicted class *probabilities* are averaged and the class with the highest average wins. The idea is that models make different mistakes, so combining them can be more stable than any single one. Soft voting needs every member to output probabilities.
  
 **Macro-averaged metrics.** Precision, recall and F1 are computed per class and averaged with equal weight, so rare classes count as much as common ones. Accuracy alone is misleading on imbalanced data (always guessing "Caries" would score about 62%).
  
-**Hierarchical FDI.** Instead of one 32-class model, predict the quadrant first (about 97 to 99% accurate), then choose the tooth number among 8 candidates: `FDI = quadrant x 10 + tooth number`.
+**Hierarchical FDI.** For the webpage which is built upon using the results from YOLO,instead of one 32-class model, predict the quadrant first (about 97 to 99% accurate), then choose the tooth number among 8 candidates: `FDI = quadrant x 10 + tooth number`.
  
 ---
  
@@ -174,15 +171,13 @@ Model weights and `.joblib` files are large binaries. They are excluded by `.git
 4. Train each model, then evaluate on the held-out images.
 **Training settings** (verify against the notebook before publishing): YOLOv8s, 50 epochs, image size 1024, batch 4, seed 42, **horizontal flip disabled** (`fliplr=0.0`). Flipping an OPG swaps the patient's left and right and would corrupt the quadrant and FDI labels.
  
-**Detection metrics:** *(add mAP@0.5, precision and recall per model from the notebook's output here.)*
- 
-**How FDI is produced from three models.** The tooth-number model only gives 1 to 8. Each detected tooth is assigned to the quadrant box that contains most of it (ties are broken by distance to the box centre), and `FDI = quadrant x 10 + tooth number`. If two boxes get the same FDI number, only the most confident is kept. Each abnormality box is attached to the tooth it overlaps most (at least 30% of the abnormality box must lie inside the tooth).
+**How FDI is produced from three models.** The tooth-number model only gives 1 to 8. Each detected tooth is assigned to the quadrant box that contains most of it , and `FDI = quadrant x 10 + tooth number`. If two boxes get the same FDI number, only the most confident is kept. Each abnormality box is attached to the tooth it overlaps most (at least 30% of the abnormality box must lie inside the tooth).
  
 ---
  
 ## 6. Part B: Traditional ML models
  
-Traditional models cannot localize anything. They classify an **already cropped** region (a quadrant region, a tooth, or an abnormal tooth) from its HOG features. All six follow the same experimental protocol so the comparison is fair.
+Traditional models cannot localize anything. They classify an **already cropped** region (a quadrant region, a tooth, or an abnormal tooth) from its HOG features. All six follow the same experimental protocol so the comparison is fair. The **Voting Classifier** (see 6.5) uses the same data, features and 70/30 split, but combines already-tuned models instead of being tuned itself.
  
 ### 6.1 Three tasks
  
@@ -196,9 +191,9 @@ Traditional models cannot localize anything. They classify an **already cropped*
 1. Read the COCO JSON, map category ids to names, build a table of boxes and labels.
 2. Crop each box from the X-ray, enhance contrast, resize, and extract **HOG** features.
 3. Split with `GroupShuffleSplit(test_size=0.3, random_state=42)` grouped by X-ray file.
-4. Tune with `StratifiedGroupKFold` + `GridSearchCV(scoring="f1_macro")` on the training part.
+4. Tune with `StratifiedGroupKFold` + `GridSearchCV(scoring="f1_macro")` on the training part. *(The Voting Classifier skips this step and reuses its members' best settings.)*
 5. Evaluate once on the held-out 30%: accuracy, macro precision, macro recall, macro F1, confusion matrix.
-6. Save the best model with `joblib`.
+6. For the web page the best models are saved with `joblib` and imported.
 ### 6.3 Models and search grids
  
 | Model | Pipeline | Searched hyperparameters | Notes |
@@ -209,6 +204,7 @@ Traditional models cannot localize anything. They classify an **already cropped*
 | **Ridge** | `StandardScaler` > `RidgeClassifier(solver="lsqr")` | `alpha` {1 ... 100000}; `max_iter` {50, 200, 1000} | `RidgeClassifier` is the classification form of ridge regression (it regresses on class targets). `class_weight="balanced"` for abnormality. |
 | **SVM** | `StandardScaler` > `PCA` > `SVC` | same structure as the KNN / RF notebooks | See `SVM.ipynb`. |
 | **Decision Tree** | `DecisionTreeClassifier(class_weight="balanced")` | same structure as the KNN / RF notebooks | See `Decision_Tree.ipynb`. |
+| **Voting Classifier** | `VotingClassifier(voting="soft")` over four pipelines: Logistic Regression, SVM (`probability=True`), Random Forest, KNN | none (no grid search; members use the best settings in 6.4, equal weights) | See `VotingClassifier.ipynb` and section 6.5. Ridge and Decision Tree are not members (Ridge has no probability output, which soft voting needs). |
  
 ### 6.4 Best hyperparameters found
  
@@ -218,60 +214,43 @@ Traditional models cannot localize anything. They classify an **already cropped*
 | Random Forest | 400 trees, depth None | 400 trees, depth 20 | 200 trees, depth 20 |
 | Logistic Regression | C=0.01, max_iter=150 | C=0.005, max_iter=150 | C=0.005, max_iter=150 |
 | Ridge | alpha=100, max_iter=50 | alpha=1000, max_iter=50 | alpha=1000, max_iter=50 |
-| SVM | *(fill in from notebook)* | *(fill in)* | *(fill in)* |
-| Decision Tree | *(fill in)* | *(fill in)* | *(fill in)* |
- 
+| SVM (RBF) | C=1, gamma="scale", PCA 0.95 | C=1, gamma="scale", PCA 0.95 | C=1,gamma="scale", PCA 0.95 |
+| Decision Tree | criterion=entropy, max_depth=None, max_features=None, min_samples_leaf=5, min_samples_split=2 | criterion=entropy, max_depth=10, min_samples_leaf=5, min_samples_split=2 | criterion=entropy, max_depth=20, min_samples_leaf=5, min_samples_split=2 | 
+| Voting Classifier | not searched: soft voting of the Logistic Regression, SVM, Random Forest and KNN settings above | same | same |
 For Logistic Regression and Ridge several settings tie exactly (for example every `max_iter` gives the same score), which means the solver converges well before the iteration cap and `max_iter` is not an influential choice here. Some best values sit at the **edge of their grid** (for example the smallest `C`, the smallest `max_iter`), so a wider grid might help slightly.
  
-### 6.5 Feature differences between the notebooks
+### 6.5 Voting Classifier
  
-The notebooks are not byte-for-byte identical in preprocessing, so results should be compared with care:
+`VotingClassifier.ipynb` builds an ensemble from four of the models above and checks whether combining them beats the individual models.
  
-| | KNN / RF (and SVM / DT) notebooks | Logistic / Ridge notebooks |
+**Members** (the same pipelines and best settings as in 6.4, one set per task):
+ 
+| Member | Pipeline | `class_weight` |
 |---|---|---|
-| Crop size | 64 x 64 | 64 x 64 (quadrant), 48 x 96 (teeth) |
-| Contrast | CLAHE | `ImageOps.autocontrast` |
-| Position | 4 features (normalized centre x, y, width, height) | 2 centre features computed, plus **one-hot true quadrant** (tooth task) and **one-hot true quadrant + tooth number** (abnormality task) |
-| HOG | 9 orientations, 8 x 8 cells, 2 x 2 blocks | same |
+| Logistic Regression | `StandardScaler` > `LogisticRegression` | balanced |
+| SVM (RBF) | `StandardScaler` > `PCA(0.95)` > `SVC(probability=True)` | balanced |
+| Random Forest | `RandomForestClassifier` | balanced |
+| KNN | `StandardScaler` > `PCA` > `KNeighborsClassifier` | not available |
  
-In the Logistic / Ridge tooth and abnormality tasks the quadrant (and tooth number) are given as **ground-truth inputs**. In a real pipeline these would come from the upstream predictions, so those scores are an optimistic upper bound for that setup.
+**How it works**
+1. Build the HOG + position features exactly as in 6.2 (64 x 64 crop, CLAHE, 9 orientations, 8 x 8 pixel cells, 2 x 2 blocks: 1,764 HOG values + 4 position values = 1,768 features per crop).
+2. Split with `GroupShuffleSplit(test_size=0.3, random_state=42)` grouped by X-ray (`image_id`). Train / test sizes: quadrant 1,940 / 832, tooth numbering 12,610 / 5,485, abnormality 2,468 / 1,061. The test image ids of each task are saved to `test_ids_<task>.csv`.
+3. Fit `VotingClassifier(members, voting="soft")` on the training part of each task. Each member is trained on the same data, and at prediction time the four class-probability vectors are averaged (equal weights).
+4. Evaluate once on the held-out 30%: accuracy, macro precision, macro recall, macro F1, a row-normalized confusion matrix and a per-class report for each task. The scores are saved to `classical_results.csv`.
+ 
+Soft voting needs probabilities from every member, which is why `SVC` is created with `probability=True` (it internally calibrates the SVM scores, so fitting is slower). Ridge cannot provide probabilities and is therefore left out.
  
 ---
  
 ## 7. Results
  
-### 7.1 Cross-validation macro-F1 (training part, X-ray-grouped folds)
  
-| Model | Quadrant | Tooth numbering | Abnormality |
-|---|---|---|---|
-| KNN | 0.968 | 0.502 | 0.423 |
-| Random Forest | 0.992 | 0.555 | 0.344 |
-| Logistic Regression | 0.996 | 0.565 | 0.534 |
-| Ridge | 0.998 | 0.571 | 0.507 |
-| SVM | *(fill in)* | *(fill in)* | *(fill in)* |
-| Decision Tree | *(fill in)* | *(fill in)* | *(fill in)* |
- 
-### 7.2 Held-out test results (30% of X-rays, unseen)
- 
-Test sizes for Logistic / Ridge: 832 quadrant regions (208 X-rays), 5,434 teeth, 1,027 abnormal teeth.
- 
-| Model | Task | Accuracy | Macro precision | Macro recall | Macro F1 |
-|---|---|---|---|---|---|
-| Logistic Regression | Quadrant | 0.995 | 0.995 | 0.995 | 0.995 |
-| Logistic Regression | Tooth numbering | 0.583 | 0.587 | 0.584 | 0.585 |
-| Logistic Regression | Abnormality | 0.639 | 0.553 | 0.595 | 0.564 |
-| Ridge | Quadrant | 1.000 | 1.000 | 1.000 | 1.000 |
-| Ridge | Tooth numbering | 0.588 | 0.591 | 0.588 | 0.588 |
-| Ridge | Abnormality | 0.635 | 0.541 | 0.626 | 0.562 |
-| KNN, RF, SVM, Logistic Regression | Quadrant | 0.995 | 0.995 | 0.995 | 0.995 |
-| KNN, RF, SVM, Logistic Regression | Tooth Numbering | 0.604 | 0.609 | 0.611 | 0.608|
-| KNN, RF, SVM, Logistic Regression | Abnormality | 0.767 | 0.697 | 0.504 | 0.493 |
-
-### 7.3 What the results show
-- **Quadrant is almost solved** (above 99% for the linear models). The label is closely tied to where the region sits on the image, so it is largely a position problem. Perfect scores on a 832-region test set should be read with that in mind.
-- **Tooth numbering is the hard part** (about 0.58 to 0.59 accuracy for the linear models). The confusion matrices show errors **between neighbouring numbers** (1 vs 2, 4 vs 5, 6 vs 7 vs 8), because adjacent teeth look alike.
-- **Abnormality detection is weak on the rare classes.** The models mostly separate *Caries* and *Impacted* and confuse *Deep Caries* and *Periapical Lesion* with Caries. Periapical Lesion has only 158 examples in total, so its metrics are noisy.
-- **Accuracy and macro-F1 disagree** on the abnormality task (accuracy about 0.64, macro-F1 about 0.56), which is why macro metrics are reported.
+### 7.1 What the results show
+- **Quadrant is almost solved** (above 99% for the linear models and for the Voting Classifier, 0.995). The label is closely tied to where the region sits on the image, so it is largely a position problem. Perfect scores on a 832-region test set should be read with that in mind.
+- **Tooth numbering is the hard part** (about 0.58 to 0.59 accuracy for the linear models, 0.604 for the Voting Classifier). The confusion matrices show errors **between neighbouring numbers** (1 vs 2, 4 vs 5, 6 vs 7 vs 8), because adjacent teeth look alike. Voting is slightly better than the linear models here, but it is not a breakthrough: the wisdom tooth (8) is the easiest class (F1 0.74) and tooth 2 the hardest (F1 0.51).
+- **Abnormality detection is weak on the rare classes.** The models mostly separate *Caries* and *Impacted* and confuse *Deep Caries* and *Periapical Lesion* with Caries. Periapical Lesion has only 158 examples in total, so its metrics are noisy. The Voting Classifier shows this clearly: it finds 97% of Caries but only 12% of Deep Caries and 4% of Periapical Lesion.
+- **Accuracy and macro-F1 disagree** on the abnormality task (accuracy about 0.64, macro-F1 about 0.56 for the linear models), which is why macro metrics are reported. The gap is even larger for the Voting Classifier (accuracy 0.767 but macro-F1 0.493): its higher accuracy comes from predicting the majority class *Caries* more often, not from better rare-class detection. A likely reason is that the averaged probabilities are not balanced for KNN and for the SVM's calibrated outputs, so the ensemble leans to the common class; this was not tested separately.
+- **The ensemble does not clearly beat the best single model.** It helps a little on tooth numbering and matches the others on quadrant, but on the abnormality task a higher accuracy is paired with a lower macro-F1, so which model is "best" depends on the metric that matters.
 ---
  
 ## 8. Part C: Web application
@@ -298,16 +277,16 @@ Place the weights:
 dental_ai/models/quadrant.pt
 dental_ai/models/enum.pt
 dental_ai/models/disease.pt
-dental_ai/models/classical/classical_models.joblib      # for the comparison page
-dental_ai/models/imgsz.txt                              # only if you trained at a size other than 1024
+dental_ai/models/classical/classical_models.joblib      
+dental_ai/models/imgsz.txt                              
 ```
  
-- Copy each YOLO run's `weights/best.pt` and rename it as above. *(Add the link to where the weights are shared, for example a GitHub Release.)*
+- Copy each YOLO run's `weights/best.pt` and rename it as above. 
 - Create `classical_models.joblib` by running `python train_classical.py <dataset folder>` (it trains all six models on the abnormality task and also stores their test metrics). Install the **same scikit-learn version** that trained it, otherwise loading can fail.
 ### 8.3 Run
  
 ```bash
-python run.py                  # http://localhost:8000
+python run.py                  
 ```
  
 The app checks for the three `.pt` files at startup:
@@ -343,16 +322,7 @@ Each analysis is stored in `storage/results/<id>/` (original, three annotated im
 | `app/services/classical.py` | Same HOG + position features as training, then predictions from the six models |
 | `config.py` | Paths, confidence thresholds, image size, class colours |
  
-### 8.6 Troubleshooting
  
-| Problem | Likely cause |
-|---|---|
-| Yellow "Demo mode" banner | One of the three `.pt` files is missing or misnamed |
-| Boxes form a fixed grid | You are in demo mode |
-| Few or misplaced detections | `imgsz.txt` does not match the size used for training |
-| Comparison page asks for `classical_models.joblib` | The file is not in `models/classical/`, or the app was not restarted |
-| Error mentioning `sklearn` or unpickling | scikit-learn version differs from the one that trained the models |
-| Slow first upload | Three YOLO models are loading |
  
 ---
  
@@ -364,7 +334,8 @@ Each analysis is stored in `storage/results/<id>/` (original, three annotated im
 - **Detection recall.** The comparison page only sees abnormalities that YOLO finds; anything YOLO misses is not classified.
 - **Dataset size.** Few examples for the rare classes make their metrics unstable between folds.
 - **Small, single-source data.** Results may not transfer to other X-ray machines or populations.
-- Ideas: tooth-context features (rank from the midline within a quadrant), wider hyperparameter grids where best values sit at an edge, oversampling inside cross-validation folds for rare classes, CNN classifiers on the crops, semi-supervised use of the 1,571 unlabelled images, and nested cross-validation for fully unbiased tuning.
+- **Voting Classifier is not tuned as an ensemble.** It reuses the members' best settings, uses equal weights, and leaves out Ridge and Decision Tree. Because the members were tuned on their own, the combination is not necessarily the best one. It also inherits the class-imbalance problem (KNN has no `class_weight`, and the averaged probabilities favour Caries), and training is slower because of the probability-enabled SVM.
+- Ideas: tooth-context features (rank from the midline within a quadrant), wider hyperparameter grids where best values sit at an edge, oversampling inside cross-validation folds for rare classes, CNN classifiers on the crops, semi-supervised use of the 1,571 unlabelled images, and nested cross-validation for fully unbiased tuning. For the ensemble: weighted voting (higher weight for the better members), tuning the voting weights with cross-validation, adjusting the averaged probabilities for class priors or a decision threshold for the rare classes, and stacking (a small model that learns how to combine the members).
 ---
  
 ## 10. Reproducibility
@@ -372,14 +343,6 @@ Each analysis is stored in `storage/results/<id>/` (original, three annotated im
 - Random seed **42** everywhere (splits, models).
 - Splits are always by X-ray, never by crop.
 - Tuning uses the training part only; the held-out part is evaluated once.
-- Record the library versions you used (`pip freeze`), in particular `scikit-learn`, `scikit-image`, `ultralytics` and `torch`.
 - Colab sessions are wiped on disconnect. Save weights and `.joblib` files outside `/content` as soon as training ends.
 ---
- 
-## 11. Acknowledgements and license
- 
-- Dataset: **DENTEX**, MICCAI 2023 challenge (cite the dataset authors according to their instructions).
-- Libraries: Ultralytics YOLO, scikit-learn, scikit-image, OpenCV, FastAPI, Uvicorn, pandas, NumPy, joblib.
-- Team: *(add names and roles: YOLO part, traditional models, web application)*.
-- License: *(choose a license for your code, for example MIT; the dataset keeps its own license)*.
  
