@@ -1,0 +1,11 @@
+﻿# model files (too large for normal git)
+*.pt
+*.joblib
+# generated analysis results
+dental_ai/storage/results/*
+!dental_ai/storage/results/.gitkeep
+# python
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/

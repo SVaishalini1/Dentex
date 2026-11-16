@@ -1,0 +1,48 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dental OPG Analyzer</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<header><div class="logo"><i></i>DentalVision</div><nav><a class="on" href="/">YOLO analysis</a><a href="/compare" id="navc">Traditional models</a></nav></header>
+<div class="demo" id="demo"><b>DEMO MODE.</b> The YOLO weights were not found in <code>models/</code>, so the boxes below are simulated and do not match the X-ray. Add the weights to see real detections.</div>
+<main>
+ <div class="card hero" id="hero"><h1>Analyze a panoramic X-ray <span>in seconds</span></h1>
+  <p>Upload an OPG to find the quadrants, the FDI number of every tooth, and the abnormalities present.</p>
+  <div id="drop"><b>Drop an OPG here</b> or click to browse<br><small>PNG or JPG, up to 20 MB</small></div>
+  <input id="file" type="file" accept="image/png,image/jpeg" hidden><p id="err"></p>
+  <div class="steps"><div class="step"><b>1 · Quadrants</b>The jaw is split into 4 quadrants.</div><div class="step"><b>2 · FDI numbers</b>Every tooth gets its FDI number.</div><div class="step"><b>3 · Abnormalities</b>Caries, Deep Caries, Periapical Lesion, Impacted.</div></div></div>
+ <div id="res" style="display:none" class="grid">
+  <div class="card"><div class="tabs"><button class="tab on" data-k="quadrants">1 · Quadrants</button><button class="tab" data-k="fdi">2 · FDI numbers</button><button class="tab" data-k="abnormalities">3 · Abnormalities</button></div>
+   <h2 id="ttl"></h2><p class="sub" id="sub"></p><img class="big" id="img" title="Click to enlarge">
+   <p style="margin:14px 0 0"><a class="btn ghost" id="dl" download>Download this image</a> <a class="btn" id="go">Compare with traditional models →</a></p></div>
+  <div style="display:grid;gap:22px;align-content:start">
+   <div class="card"><div class="stats" id="stats"></div></div>
+   <div class="card"><h2>Abnormalities found</h2><p class="sub">Tooth (FDI) and type</p><div id="list"></div></div>
+   <div class="card"><h2>Legend</h2><div class="legend" id="lg"></div><p class="note" style="margin:12px 0 0">Research tool, not a medical diagnosis. Patient's right is on the image's left.</p></div>
+   <button class="btn ghost" onclick="location.reload()">Analyze another X-ray</button></div>
+ </div>
+</main>
+<div id="load"><div class="spin"></div><div>Analyzing X-ray…</div></div><div id="lb"><img id="lbi"></div>
+<script>
+const COL={"Caries":"#f5a623","Deep Caries":"#e5484d","Periapical Lesion":"#8e4ec6","Impacted":"#0091ff"};
+const QC={1:"#12a594",2:"#3e63dd",3:"#d6409f",4:"#6e9b00"},QN={1:"Upper right",2:"Upper left",3:"Lower left",4:"Lower right"};
+const T={quadrants:["OPG divided into 4 quadrants","Q1 upper right, Q2 upper left, Q3 lower left, Q4 lower right."],
+ fdi:["FDI number of each tooth","FDI = quadrant × 10 + tooth number (1 central incisor … 8 wisdom tooth)."],
+ abnormalities:["Abnormalities in each tooth","Each box shows the tooth FDI, the abnormality and the confidence."]};
+const $=id=>document.getElementById(id);let R=null,K="quadrants";
+fetch("/api/health").then(r=>r.json()).then(h=>{if(h.mock)$("demo").style.display="block"});
+const drop=$("drop"),fi=$("file");drop.onclick=()=>fi.click();fi.onchange=()=>fi.files[0]&&send(fi.files[0]);
+["dragover","dragenter"].forEach(e=>drop.addEventListener(e,v=>{v.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(e=>drop.addEventListener(e,v=>{v.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",v=>v.dataTransfer.files[0]&&send(v.dataTransfer.files[0]));
+async function send(f){$("err").style.display="none";$("load").style.display="flex";
+ const fd=new FormData();fd.append("file",f);
+ try{const r=await fetch("/api/analyze",{method:"POST",body:fd});if(!r.ok)throw new Error((await r.json()).detail||r.statusText);show(await r.json())}
+ catch(e){$("err").textContent="Error: "+e.message;$("err").style.display="block"}$("load").style.display="none"}
+function view(k){K=k;document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.k===k));
+ $("img").src=R.images[k];$("dl").href=R.images[k];$("ttl").textContent=T[k][0];$("sub").textContent=T[k][1]}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>view(t.dataset.k));
+$("img").onclick=()=>{$("lbi").src=R.images[K];$("lb").style.display="block"};$("lb").onclick=()=>$("lb").style.display="none";
+function show(r){R=r;localStorage.setItem("lastId",r.id);$("hero").style.display="none";$("res").style.display="grid";
+ const s=r.summary;$("stats").innerHTML=[["Quadrants",s.quadrants_found],["Teeth found",s.teeth_detected],["Abnormal teeth",s.teeth_with_abnormality],["Findings",s.findings]].map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+ $("list").innerHTML=r.findings.map(f=>{const t=r.teeth.find(t=>t.fdi===f.fdi);return `<div class="item"><div><span class="fdi">${f.fdi??"?"}</span><div class="muted">${t?t.quadrant_name:"unassigned"}</div></div><div style="text-align:right"><span class="tag" style="background:${COL[f.disease]}">${f.disease}</span><div class="muted">${Math.round(f.conf*100)}% confidence</div></div></div>`}).join("")||'<p class="sub">No abnormalities detected.</p>';
+ $("lg").innerHTML=Object.entries(COL).map(([d,c])=>`<span class="lg"><i class="dot" style="background:${c}"></i>${d}</span>`).join("")+Object.entries(QC).map(([q,c])=>`<span class="lg"><i class="dot" style="background:${c}"></i>Q${q} ${QN[q]}</span>`).join("");
+ $("go").href=$("navc").href="/compare?id="+r.id;view("quadrants")}
+</script></body></html>

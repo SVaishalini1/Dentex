@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+opencv-python-headless
+numpy
+pandas
+pillow
+scikit-image
+scikit-learn      # use the SAME version that trained the models (printed by train_classical.py)
+joblib
+ultralytics       # YOLO
+httpx             # tests only
+pytest            # tests only

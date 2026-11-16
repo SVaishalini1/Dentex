@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traditional models</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<header><div class="logo"><i></i>DentalVision</div><nav><a href="/">YOLO analysis</a><a class="on" href="#">Traditional models</a></nav></header>
+<div class="demo" id="demo"><b>DEMO MODE.</b> Detections are simulated because the YOLO weights are missing.</div>
+<main>
+ <div class="card"><h2>What each traditional model predicts for the abnormalities YOLO found</h2>
+  <p class="sub">Each abnormality box is cropped and classified by Logistic Regression, Ridge, Random Forest, SVM, KNN and Decision Tree. A green outline means the model agrees with YOLO. YOLO is the reference here, not the ground truth.</p>
+  <p id="err" style="display:block;color:var(--muted)">Loading…</p><div class="cmp" id="cards"></div></div>
+ <div class="card" id="agc" style="display:none"><h2>Agreement with YOLO on this X-ray</h2><div id="ag"></div></div>
+ <div class="card" id="mc" style="display:none"><h2>Held-out test performance</h2><p class="sub">Disease classification on the DENTEX test split (macro average).</p><div class="tw"><table id="mt"></table></div></div>
+ <p><a class="btn ghost" href="/">← Back to YOLO analysis</a></p>
+</main>
+<script>
+const COL={"Caries":"#f5a623","Deep Caries":"#e5484d","Periapical Lesion":"#8e4ec6","Impacted":"#0091ff"};
+const $=id=>document.getElementById(id),tag=d=>`<span class="tag" style="background:${COL[d]}">${d}</span>`;
+fetch("/api/health").then(r=>r.json()).then(h=>{if(h.mock)$("demo").style.display="block"});
+(async()=>{const id=new URLSearchParams(location.search).get("id")||localStorage.getItem("lastId");
+ if(!id){$("err").textContent="No analysis yet. Upload an OPG on the YOLO page first.";return}
+ const R=await (await fetch("/api/results/"+id)).json(),C=R.compare;
+ if(!C.available){$("err").textContent=C.message;return}
+ if(!C.rows.length){$("err").textContent="YOLO found no abnormalities in this X-ray, so there is nothing to classify.";return}
+ $("err").style.display="none";const names=Object.keys(C.models);
+ $("cards").innerHTML=C.rows.map(r=>`<div class="fc"><div class="top"><img class="crop" src="${r.crop_url}"><div><div class="fdi" style="font-size:22px">Tooth ${r.fdi??"?"}</div><div class="muted">YOLO says</div>${tag(r.yolo)}</div></div>
+  <div class="mg">${names.map(n=>{const p=r.predictions[n];return `<div class="mc ${p===r.yolo?"ok":""}"><span>${C.models[n]}${p===r.yolo?" ✓":""}</span>${tag(p)}</div>`}).join("")}</div></div>`).join("");
+ $("agc").style.display="block";
+ $("ag").innerHTML=names.map(n=>{const a=Math.round((C.agreement[n]||0)*100);return `<div class="row"><div>${C.models[n]}</div><div class="bar"><i style="width:${a}%"></i></div><div>${a}%</div></div>`}).join("");
+ if(C.test_metrics&&C.test_metrics.length){$("mc").style.display="block";
+  $("mt").innerHTML=`<thead><tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>`+C.test_metrics.map(m=>`<tr><td>${C.models[m.model]||m.model}</td><td>${m.accuracy}</td><td>${m.precision}</td><td>${m.recall}</td><td><b>${m.f1}</b></td></tr>`).join("")+"</tbody>"}
+})();
+</script></body></html>
