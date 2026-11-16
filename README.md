@@ -39,7 +39,7 @@ The project has three parts that share one dataset:
 |---|---|---|
 | 01 | **Tooth localization**: locate individual teeth / quadrants in an OPG | YOLO (Part A) |
 | 02 | **Quadrant prediction and tooth enumeration**: classify a tooth into one of four quadrants and give its number | YOLO (Part A) and traditional models incl. Voting Classifier (Part B) |
-| 04 | **Pathology detection**: identify caries, deep caries, periapical lesions and impacted teeth | YOLO (Part A) and traditional models incl. Voting Classifier (Part B) |
+| 03 | **Pathology detection**: identify caries, deep caries, periapical lesions and impacted teeth | YOLO (Part A) and traditional models incl. Voting Classifier (Part B) |
  
 ### Pipeline
  
@@ -169,7 +169,7 @@ Model weights and `.joblib` files are large binaries. They are excluded by `.git
 2. Convert the COCO annotations (polygons or boxes) to YOLO label format, one dataset per task.
 3. Split **by image** into train / validation / test (seed 42), so no X-ray appears in two sets.
 4. Train each model, then evaluate on the held-out images.
-**Training settings** (verify against the notebook before publishing): YOLOv8s, 50 epochs, image size 1024, batch 4, seed 42, **horizontal flip disabled** (`fliplr=0.0`). Flipping an OPG swaps the patient's left and right and would corrupt the quadrant and FDI labels.
+**Training settings** : YOLOv8s, 50 epochs, image size 1024, batch 4, seed 42, **horizontal flip disabled** (`fliplr=0.0`). Flipping an OPG swaps the patient's left and right and would corrupt the quadrant and FDI labels.
  
 **How FDI is produced from three models.** The tooth-number model only gives 1 to 8. Each detected tooth is assigned to the quadrant box that contains most of it , and `FDI = quadrant x 10 + tooth number`. If two boxes get the same FDI number, only the most confident is kept. Each abnormality box is attached to the tooth it overlaps most (at least 30% of the abnormality box must lie inside the tooth).
  
